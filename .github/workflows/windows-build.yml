@@ -1,10 +1,9 @@
-name: Build with MinGW
+name: Build n2n Windows MinGW MT
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
 
 jobs:
   build:
@@ -14,34 +13,28 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # ✅ 使用 setup-msys2 自动安装工具链
-    - name: Set up MSYS2 environment
+    - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: >-
-          mingw-w64-x86_64-gcc
+        install: > 
+          base-devel 
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-pkg-config
           mingw-w64-x86_64-cmake
-          mingw-w64-x86_64-make
+          mingw-w64-x86_64-ninja
 
-    - name: Build using MSYS2
+    - name: Build n2n with MinGW MT
       shell: msys2 {0}
       run: |
-        mkdir -p build
+        cd /github/workspace
+        mkdir build
         cd build
-        cmake .. -G "MinGW Makefiles"
-        mingw32-make
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++" ..
+        ninja
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: my-app-win64
-        path: build/my-app.exe
-
-    # 🔧 [可选] 如果 msys2/setup-msys2@v2 下载失败，可使用以下手动方式安装 MSYS2（替换上方步骤）
-    # - name: Manual MSYS2 install (备用)
-    #   if: ${{ failure() }}
-    #   run: |
-    #     curl -LO https://github.com/msys2/msys2-installer/releases/download/2024-05-20/msys2-x86_64-20240520.exe
-    #     Start-Process .\msys2-x86_64-20240520.exe -ArgumentList '--root C:\msys64 --confirm-command --accept-messages --no-admin' -Wait
-    #     echo "C:\msys64\usr\bin" >> $env:GITHUB_PATH
+        name: n2n-win-mingw-mt
+        path: build/n2n.exe
