@@ -12,10 +12,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source
+    - name: Checkout source code
       uses: actions/checkout@v3
 
-    - name: Set up MSYS2 with MinGW
+    - name: Set up MSYS2 with MinGW-w64
       uses: msys2/setup-msys2@v2
       with:
         update: true
@@ -25,7 +25,7 @@ jobs:
           mingw-w64-x86_64-make
           mingw-w64-x86_64-libwinpcap
 
-    - name: Build static edge.exe with MinGW
+    - name: Build edge.exe (statically linked)
       shell: msys2 {0}
       run: |
         mkdir build
@@ -36,8 +36,8 @@ jobs:
           -DCMAKE_EXE_LINKER_FLAGS="-static"
         mingw32-make -j$(nproc)
 
-    - name: Upload edge.exe
-      uses: actions/upload-artifact@v3
+    - name: Upload edge.exe artifact
+      uses: actions/upload-artifact@v4
       with:
         name: edge-windows-static
         path: build/edge.exe
