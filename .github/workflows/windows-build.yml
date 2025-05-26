@@ -36,12 +36,12 @@ jobs:
         export LDFLAGS="-static -static-libgcc -static-libstdc++"
         make
         mkdir -p dist
-        cp edge supernode dist/
+        cp edge.exe supernode.exe dist/
       shell: bash
 
     - name: Package into zip
       run: |
-        powershell Compress-Archive -Path dist\edge,dist\supernode -DestinationPath n2n-win7.zip
+        powershell Compress-Archive -Path dist\edge.exe,dist\supernode.exe -DestinationPath n2n-win7.zip
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
