@@ -8,38 +8,36 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-windows:
+    name: Build on Windows
     runs-on: windows-latest
 
     steps:
-    - name: Checkout source
-      uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Install Chocolatey tools
-      run: |
-        choco install git mingw make --yes
+    - name: Install Chocolatey packages (Git, MinGW, Make)
+      run: choco install -y git mingw make
 
     - name: Add MinGW to PATH
-      shell: cmd
       run: |
-        echo C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin>>%GITHUB_PATH%
-        echo C:\ProgramData\chocolatey\lib\make\tools\install\bin>>%GITHUB_PATH%
+        echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
-    - name: Build with static flags (Git Bash)
+    - name: Clone n2n repository
+      run: |
+        git clone https://github.com/ntop/n2n.git
       shell: bash
+
+    - name: Build n2n
       run: |
-        git config --global core.autocrlf input
         cd n2n
-
         ./scripts/hack_fakeautoconf.sh
-
         export CFLAGS="-static -static-libgcc -static-libstdc++"
         export LDFLAGS="-static -static-libgcc -static-libstdc++"
-
         make
-
         mkdir -p dist
         cp edge supernode dist/
+      shell: bash
 
     - name: Package into zip
       run: |
