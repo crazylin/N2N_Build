@@ -20,29 +20,32 @@ jobs:
       run: choco install -y git mingw make
 
     - name: Add MinGW to PATH
-      run: |
-        echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+      run: echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+      shell: powershell
 
     - name: Clone n2n repository
-      run: |
-        git clone https://github.com/ntop/n2n.git
+      run: git clone https://github.com/ntop/n2n.git
       shell: bash
 
     - name: Build n2n
+      shell: bash
       run: |
         cd n2n
         ./scripts/hack_fakeautoconf.sh
         export CFLAGS="-static -static-libgcc -static-libstdc++"
         export LDFLAGS="-static -static-libgcc -static-libstdc++"
         make
-        powershell -Command "New-Item -ItemType Directory -Force -Path dist"
-        powershell -Command "Copy-Item edge.exe, supernode.exe -Destination dist"
-      shell: bash
+
+    - name: Create dist folder and copy files
+      shell: powershell
+      run: |
+        New-Item -ItemType Directory -Force -Path n2n\dist
+        Copy-Item -Path n2n\edge.exe, n2n\supernode.exe -Destination n2n\dist
 
     - name: Package into zip
+      shell: powershell
       run: |
-        cd n2n/dist
-        powershell Compress-Archive -Path edge.exe,supernode.exe -DestinationPath n2n-win7.zip
+        Compress-Archive -Path n2n\dist\edge.exe, n2n\dist\supernode.exe -DestinationPath n2n-win7.zip
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
