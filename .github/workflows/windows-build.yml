@@ -41,8 +41,7 @@ jobs:
 
     - name: Package into zip
       run: |
-        cd n2n/dist
-        powershell Compress-Archive -Path edge,supernode -DestinationPath ../../n2n-win7.zip
+        powershell Compress-Archive -Path dist\edge,dist\supernode -DestinationPath n2n-win7.zip
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
