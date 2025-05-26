@@ -1,57 +1,61 @@
 name: Build n2n on Windows
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch
 
 jobs:
   build-windows:
-    name: Build on Windows
-    runs-on: windows-2022
-    timeout-minutes: 30
-
+    name: Build Windows (${{ matrix.compiler }})
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        compiler: [msvc, mingw]
+    
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
       with:
-        vs-version: '17.0'
-        msbuild-architecture: x64  # 修正架构设置
+        submodules: recursive
 
-    - name: Install OpenSSL
+    - name: Setup build environment
+      if: matrix.compiler == 'msvc'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Install MinGW dependencies
+      if: matrix.compiler == 'mingw'
       run: |
-        # 使用官方推荐的安装方式
-        $url = "https://slproweb.com/download/Win64OpenSSL-3_1_4.msi"
-        Invoke-WebRequest -Uri $url -OutFile openssl.msi
-        Start-Process msiexec.exe -Wait -ArgumentList "/i openssl.msi /quiet /qn /norestart ADDLOCAL=ALL"
-        $env:Path += ";C:\Program Files\OpenSSL-Win64\bin"
-        echo "OPENSSL_ROOT_DIR=C:\Program Files\OpenSSL-Win64" >> $env:GITHUB_ENV
-      timeout-minutes: 5
+        choco install mingw -y
+        refreshenv
 
     - name: Configure CMake
       shell: cmd
       run: |
-        cmake -B build -S . ^
-          -G "Visual Studio 17 2022" -A x64 ^
-          -DOPENSSL_ROOT_DIR="%OPENSSL_ROOT_DIR%" ^
-          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL ^
-          -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH
+        mkdir build
+        cd build
+        cmake .. -G "%CMAKE_GENERATOR%" ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DN2N_OPTION_USE_PTHREAD=OFF
+      env:
+        CMAKE_GENERATOR: >-
+          ${{ matrix.compiler == 'msvc' && 'Visual Studio 17 2022' || 'MinGW Makefiles' }}
 
     - name: Build project
-      run: cmake --build build --config Release --parallel 4
-
-    - name: Verify binaries
+      shell: cmd
       run: |
-        if (-not (Test-Path "build\Release\edge.exe")) { exit 1 }
-        if (-not (Test-Path "build\Release\supernode.exe")) { exit 1 }
+        cd build
+        cmake --build . --config Release --parallel 2
 
-    - name: Upload Artifacts
+    - name: Collect artifacts
+      shell: cmd
+      run: |
+        mkdir artifacts
+        copy build\edge\Release\edge.exe artifacts
+        copy build\supernode\Release\supernode.exe artifacts
+
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Windows-Binaries
-        path: |
-          build/Release/edge.exe
-          build/Release/supernode.exe
-        retention-days: 3
-        compression-level: 9
+        name: n2n-windows-${{ matrix.compiler }}
+        path: artifacts/*
