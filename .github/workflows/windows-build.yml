@@ -18,8 +18,8 @@ jobs:
 
     - name: Download winlibs MinGW-w64 toolchain
       run: |
-        curl -LO https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0-llvm-20.1.0-r1/winlibs-x86_64-posix-seh-gcc-13.2.0-llvm-mingw-20.1.0-r1.zip
-        7z x winlibs-x86_64-*.zip -owinlibs
+        curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20250514/llvm-mingw-20250514-msvcrt-x86_64.zip
+        7z x llvm-mingw-*.zip -owinlibs
         echo "$env:GITHUB_WORKSPACE\\winlibs\\mingw64\\bin" >> $env:GITHUB_PATH
       shell: pwsh
 
