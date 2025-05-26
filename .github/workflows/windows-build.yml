@@ -1,21 +1,21 @@
-name: Build n2n for Windows (MinGW Static)
+name: Build with MinGW
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [main]
   pull_request:
-    branches: [ master ]
+    branches: [main]
 
 jobs:
-  build-windows-mingw-static:
-    runs-on: windows-latest
+  build:
+    runs-on: windows-2022
 
     steps:
-    - name: Checkout source code
+    - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up MSYS2 with MinGW-w64
+    # ✅ 使用 setup-msys2 自动安装工具链
+    - name: Set up MSYS2 environment
       uses: msys2/setup-msys2@v2
       with:
         update: true
@@ -23,21 +23,25 @@ jobs:
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-make
-          mingw-w64-x86_64-libwinpcap
 
-    - name: Build edge.exe (statically linked)
+    - name: Build using MSYS2
       shell: msys2 {0}
       run: |
-        mkdir build
+        mkdir -p build
         cd build
-        cmake .. -G "MinGW Makefiles" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_FLAGS_RELEASE="-static -static-libgcc -static-libstdc++" \
-          -DCMAKE_EXE_LINKER_FLAGS="-static"
-        mingw32-make -j$(nproc)
+        cmake .. -G "MinGW Makefiles"
+        mingw32-make
 
-    - name: Upload edge.exe artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: edge-windows-static
-        path: build/edge.exe
+        name: my-app-win64
+        path: build/my-app.exe
+
+    # 🔧 [可选] 如果 msys2/setup-msys2@v2 下载失败，可使用以下手动方式安装 MSYS2（替换上方步骤）
+    # - name: Manual MSYS2 install (备用)
+    #   if: ${{ failure() }}
+    #   run: |
+    #     curl -LO https://github.com/msys2/msys2-installer/releases/download/2024-05-20/msys2-x86_64-20240520.exe
+    #     Start-Process .\msys2-x86_64-20240520.exe -ArgumentList '--root C:\msys64 --confirm-command --accept-messages --no-admin' -Wait
+    #     echo "C:\msys64\usr\bin" >> $env:GITHUB_PATH
