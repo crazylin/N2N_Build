@@ -9,38 +9,42 @@ on:
 jobs:
   build-windows:
     name: Build on Windows
-    runs-on: windows-2022  # 显式指定与日志匹配的环境
+    runs-on: windows-2022
+    timeout-minutes: 30  # 增加全局超时时间
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4  # 更新到最新稳定版
+      uses: actions/checkout@v4  # 必须使用 v4 版本
 
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.3.1  # 指定明确版本
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2  # 升级到新版
+      with:
+        vs-version: '17.0'  # 明确指定 VS2022
 
-    - name: Install OpenSSL
+    - name: Install OpenSSL via Chocolatey
       run: |
-        $url = "https://slproweb.com/download/Win64OpenSSL-3_1_4.msi"
-        Invoke-WebRequest -Uri $url -OutFile openssl.msi
-        Start-Process msiexec.exe -ArgumentList "/i openssl.msi /quiet /qn /norestart" -Wait
-        $env:Path += ";C:\Program Files\OpenSSL-Win64\bin"
+        choco install openssl --version=3.1.4 -y --no-progress
+        echo "C:\Program Files\OpenSSL-Win64\bin" >> $env:GITHUB_PATH
         echo "OPENSSL_ROOT_DIR=C:\Program Files\OpenSSL-Win64" >> $env:GITHUB_ENV
+      timeout-minutes: 10  # 单独步骤超时设置
 
     - name: Configure CMake
-      shell: cmd  # 强制使用 CMD 避免 PowerShell 转义问题
+      shell: cmd
       run: |
         cmake -B build -S . ^
           -G "Visual Studio 17 2022" -A x64 ^
-          -DOPENSSL_ROOT_DIR="%OPENSSL_ROOT_DIR%"
+          -DOPENSSL_ROOT_DIR="%OPENSSL_ROOT_DIR%" ^
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
 
     - name: Build project
       run: cmake --build build --config Release --parallel 4
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v4  # 升级到最新版本
+      uses: actions/upload-artifact@v4
       with:
         name: Windows-Binaries
         path: |
           build/Release/edge.exe
           build/Release/supernode.exe
-        retention-days: 5
+        if-no-files-found: error
+        retention-days: 3
