@@ -1,61 +1,35 @@
-name: Build n2n on Windows
+name: Build n2n for Windows
 
 on:
-  workflow_dispatch
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-windows:
-    name: Build Windows (${{ matrix.compiler }})
+    name: Build on Windows
     runs-on: windows-latest
-    strategy:
-      matrix:
-        compiler: [msvc, mingw]
-    
+
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
 
-    - name: Setup build environment
-      if: matrix.compiler == 'msvc'
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-
-    - name: Install MinGW dependencies
-      if: matrix.compiler == 'mingw'
+    - name: Install Chocolatey packages
       run: |
-        choco install mingw -y
+        choco install -y git mingw make
         refreshenv
 
-    - name: Configure CMake
-      shell: cmd
+    - name: Add MinGW to PATH
       run: |
-        mkdir build
-        cd build
-        cmake .. -G "%CMAKE_GENERATOR%" ^
-          -DCMAKE_BUILD_TYPE=Release ^
-          -DN2N_OPTION_USE_PTHREAD=OFF
-      env:
-        CMAKE_GENERATOR: >-
-          ${{ matrix.compiler == 'msvc' && 'Visual Studio 17 2022' || 'MinGW Makefiles' }}
+        echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
 
-    - name: Build project
-      shell: cmd
+    - name: Clone n2n repository
       run: |
-        cd build
-        cmake --build . --config Release --parallel 2
-
-    - name: Collect artifacts
-      shell: cmd
-      run: |
-        mkdir artifacts
-        copy build\edge\Release\edge.exe artifacts
-        copy build\supernode\Release\supernode.exe artifacts
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: n2n-windows-${{ matrix.compiler }}
-        path: artifacts/*
+        git clone https://github.com/ntop/n2n.git
+        cd n2n
+        ./scripts/hack_fakeautoconf.sh
+        make
+        make test
+      shell: bash
