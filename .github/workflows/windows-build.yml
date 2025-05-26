@@ -32,7 +32,8 @@ jobs:
       run: |
         cd n2n
         ./scripts/hack_fakeautoconf.sh
-        export CFLAGS="-static -static-libgcc -static-libstdc++"
+        export CC=x86_64-w64-mingw32-gcc
+        export CFLAGS="-O2 -static -static-libgcc -static-libstdc++"
         export LDFLAGS="-static -static-libgcc -static-libstdc++"
         make
 
