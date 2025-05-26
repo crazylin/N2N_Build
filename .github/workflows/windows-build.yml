@@ -37,6 +37,7 @@ jobs:
         export LDFLAGS="-static -static-libgcc -static-libstdc++"
 
         make
+        make test
 
         mkdir -p dist
         cp edge supernode dist/
@@ -47,7 +48,7 @@ jobs:
         powershell Compress-Archive -Path edge,supernode -DestinationPath ../../n2n-win7.zip
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: n2n-win7-build
         path: n2n-win7.zip
