@@ -8,37 +8,54 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
-    name: Build on Windows
+  build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - name: Checkout source
+      uses: actions/checkout@v3
 
-    - name: Install Chocolatey packages (Git, MinGW, Make)
-      run: choco install -y git mingw make
+    - name: Install Chocolatey tools
+      run: |
+        choco install git mingw make --yes
 
     - name: Add MinGW to PATH
+      shell: cmd
       run: |
-        echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+        echo C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin>>%GITHUB_PATH%
+        echo C:\ProgramData\chocolatey\lib\make\tools\install\bin>>%GITHUB_PATH%
 
-    - name: Clone n2n repository
-      run: |
-        git clone https://github.com/ntop/n2n.git
+    - name: Build with static flags (Git Bash)
       shell: bash
-
-    - name: Build n2n
       run: |
+        git config --global core.autocrlf input
         cd n2n
-        ./scripts/hack_fakeautoconf.sh
-        make
-      shell: bash
 
-    - name: Upload n2n executables
-      uses: actions/upload-artifact@v4
+        ./scripts/hack_fakeautoconf.sh
+
+        export CFLAGS="-static -static-libgcc -static-libstdc++"
+        export LDFLAGS="-static -static-libgcc -static-libstdc++"
+
+        make
+
+        mkdir -p dist
+        cp edge supernode dist/
+
+    - name: Package into zip
+      run: |
+        cd n2n/dist
+        powershell Compress-Archive -Path edge,supernode -DestinationPath ../../n2n-win7.zip
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
       with:
-        name: n2n-windows-build
-        path: |
-          n2n/edge.exe
-          n2n/supernode.exe
+        name: n2n-win7-build
+        path: n2n-win7.zip
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: n2n-win7.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
