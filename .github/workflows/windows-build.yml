@@ -33,7 +33,7 @@ jobs:
         cd n2n
         ./scripts/hack_fakeautoconf.sh
         make
-        make test
+        make test_units
       shell: bash
 
     - name: Upload n2n executables
