@@ -9,34 +9,36 @@ on:
 
 jobs:
   build-windows:
-    name: Build on Windows
+    name: Build n2n on Windows with Static Linking
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Install Chocolatey packages (Git, MinGW, Make)
-      run: choco install -y git mingw make
+    - name: Download winlibs MinGW-w64 toolchain
+      run: |
+        curl -LO https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0-llvm-20.1.0-r1/winlibs-x86_64-posix-seh-gcc-13.2.0-llvm-mingw-20.1.0-r1.zip
+        7z x winlibs-x86_64-*.zip -owinlibs
+        echo "$env:GITHUB_WORKSPACE\\winlibs\\mingw64\\bin" >> $env:GITHUB_PATH
+      shell: pwsh
 
-    - name: Add MinGW to PATH
-      run: echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
-      shell: powershell
-
-    - name: Clone n2n repository
+    - name: Clone n2n source
       run: git clone https://github.com/ntop/n2n.git
       shell: bash
 
-    - name: Build n2n
+    - name: Build n2n (static)
       shell: bash
       run: |
         cd n2n
         ./scripts/hack_fakeautoconf.sh
+
         export CC=x86_64-w64-mingw32-gcc
         export CFLAGS="-O2 -static -static-libgcc -static-libstdc++"
         export LDFLAGS="-static -static-libgcc -static-libstdc++"
-        make
 
+        make
+        
     - name: Create dist folder and copy files
       shell: powershell
       run: |
@@ -44,17 +46,17 @@ jobs:
         Copy-Item -Path n2n\edge.exe, n2n\supernode.exe -Destination n2n\dist
 
     - name: Package into zip
-      shell: powershell
       run: |
-        Compress-Archive -Path n2n\dist\edge.exe, n2n\dist\supernode.exe -DestinationPath n2n-win7.zip
+        Compress-Archive -Path n2n/dist/edge.exe,n2n/dist/supernode.exe -DestinationPath n2n-win7.zip
+      shell: pwsh
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: n2n-win7-build
+        name: n2n-win7-static-build
         path: n2n-win7.zip
 
-    - name: Create GitHub Release
+    - name: Create GitHub Release (if tagged)
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
