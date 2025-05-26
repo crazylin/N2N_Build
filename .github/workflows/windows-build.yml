@@ -35,8 +35,8 @@ jobs:
         export CFLAGS="-static -static-libgcc -static-libstdc++"
         export LDFLAGS="-static -static-libgcc -static-libstdc++"
         make
-        mkdir -p dist
-        cp edge.exe supernode.exe dist/
+        powershell -Command "New-Item -ItemType Directory -Force -Path dist"
+        powershell -Command "Copy-Item edge.exe, supernode.exe -Destination dist"
       shell: bash
 
     - name: Package into zip
