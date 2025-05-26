@@ -16,10 +16,8 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Chocolatey packages
-      run: |
-        choco install -y git mingw make
-        refreshenv
+    - name: Install Chocolatey packages (Git, MinGW, Make)
+      run: choco install -y git mingw make
 
     - name: Add MinGW to PATH
       run: |
@@ -28,8 +26,20 @@ jobs:
     - name: Clone n2n repository
       run: |
         git clone https://github.com/ntop/n2n.git
+      shell: bash
+
+    - name: Build n2n
+      run: |
         cd n2n
         ./scripts/hack_fakeautoconf.sh
         make
         make test
       shell: bash
+
+    - name: Upload n2n executables
+      uses: actions/upload-artifact@v4
+      with:
+        name: n2n-windows-build
+        path: |
+          n2n/edge.exe
+          n2n/supernode.exe
