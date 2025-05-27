@@ -19,9 +19,15 @@ jobs:
     - name: Install Chocolatey packages (Git, MinGW, Make)
       run: choco install -y git mingw make
 
-    - name: Add MinGW to PATH
-      run: echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
-      shell: powershell
+    # - name: Add MinGW to PATH
+    #   run: echo "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin" | Out-File -Append -Encoding ascii $env:GITHUB_PATH
+    #   shell: powershell
+    - name: Download winlibs MinGW-w64 toolchain
+      run: |
+        curl -LO https://github.com/mstorsjo/llvm-mingw/releases/download/20250514/llvm-mingw-20250514-msvcrt-x86_64.zip
+        7z x llvm-mingw-*.zip -owinlibs
+        echo "$env:GITHUB_WORKSPACE\\winlibs\\mingw64\\bin" >> $env:GITHUB_PATH
+      shell: pwsh
 
     - name: Clone n2n repository
       run: git clone https://github.com/ntop/n2n.git
