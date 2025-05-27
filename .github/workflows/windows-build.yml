@@ -32,8 +32,8 @@ jobs:
       run: |
         cd n2n
         ./scripts/hack_fakeautoconf.sh
-        export CFLAGS="-static -static-libgcc -static-libstdc++"
-        export LDFLAGS="-static -static-libgcc -static-libstdc++"
+        export CFLAGS="-static"
+        export LDFLAGS="-static"
         make
 
     - name: Create dist folder and copy files
